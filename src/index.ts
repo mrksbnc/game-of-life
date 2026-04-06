@@ -1,6 +1,11 @@
 import { GameOfLife } from "./core/game-of-life";
 import { initThemeToggle } from "./theme/theme";
 
+enum GameStateLabel {
+  Start = "Start",
+  Stop = "Stop",
+}
+
 const game = new GameOfLife({
   canvasId: "game-of-life__canvas",
 });
@@ -15,8 +20,8 @@ const resetBtn = document.getElementById("reset-btn") as HTMLButtonElement;
 const randomBtn = document.getElementById("random-btn") as HTMLButtonElement;
 
 startBtn.addEventListener("click", () => {
-  const running = game.toggle();
-  startBtn.textContent = running ? "Stop" : "Start";
+  const running = game.onToggle();
+  startBtn.textContent = running ? GameStateLabel.Stop : GameStateLabel.Stop;
 });
 
 stepBtn.addEventListener("click", () => game.step());

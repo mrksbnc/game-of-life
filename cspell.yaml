@@ -1,21 +1,21 @@
 $schema: https://raw.githubusercontent.com/streetsidesoftware/cspell/main/cspell.schema.json
-version: "0.2"
+version: '0.2'
 useGitignore: true
 language: en-gb,en-us,lorem-ipsum
 
 ignorePaths:
-  - ".husky/**"
-  - ".github/**"
-  - ".vscode/**"
-  - "node_modules/**"
-  - "dist/**"
-  - "build/**"
-  - "coverage/**"
-  - "public/**"
+  - '.husky/**'
+  - '.github/**'
+  - '.vscode/**'
+  - 'node_modules/**'
+  - 'dist/**'
+  - 'build/**'
+  - 'coverage/**'
+  - 'public/**'
 
 dictionaryDefinitions:
   - name: project-terms
-    path: "./config/cspell/project-terms.txt"
+    path: './config/cspell/project-terms.txt'
     addWords: true
 
 dictionaries:
