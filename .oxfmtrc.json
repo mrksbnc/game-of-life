@@ -1,0 +1,12 @@
+{
+  "semi": true,
+  "useTabs": true,
+  "singleQuote": true,
+  "sortPackageJson": true,
+  "ignorePatterns": ["node_modules", ".husky"],
+  "sortImports": {
+    "paths": true,
+    "sortSideEffects": true,
+    "newlinesBetween": false
+  }
+}
