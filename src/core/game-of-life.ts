@@ -1,239 +1,214 @@
-import { Cell } from './cell';
+import { Cell } from "./cell";
 
-const GRID_SIZE = 10;
+const CELL_SIZE = 5;
+const MIN_ROWS = 500;
+const MIN_COLS = 1000;
 
 export interface GameOfLifeOptions {
-	canvasId: string;
+  canvasId: string;
 }
 
 export class GameOfLife {
-	#canvas: HTMLCanvasElement;
-	#context: CanvasRenderingContext2D;
-	#grid: Cell[][];
-	#cellSize: number;
-	#offsetX: number;
-	#offsetY: number;
-	#running = false;
-	#animationId: number | null = null;
+  #canvas: HTMLCanvasElement;
+  #context: CanvasRenderingContext2D;
+  #grid: Cell[][];
+  #cols = 0;
+  #rows = 0;
+  #running = false;
+  #animationId: number | null = null;
 
-	constructor(options: GameOfLifeOptions) {
-		this.#canvas = document.getElementById(options.canvasId) as HTMLCanvasElement;
+  constructor(options: GameOfLifeOptions) {
+    this.#canvas = document.getElementById(options.canvasId) as HTMLCanvasElement;
 
-		const context = this.#canvas.getContext('2d');
-		if (!context) {
-			throw new Error('No context was found');
-		}
+    const context = this.#canvas.getContext("2d");
+    if (!context) {
+      throw new Error("No context was found");
+    }
 
-		this.#context = context;
-		this.#grid = this.#initGrid();
-		this.#cellSize = 0;
-		this.#offsetX = 0;
-		this.#offsetY = 0;
+    this.#context = context;
+    this.#grid = [];
 
-		this.#resize();
-		this.#registerEventListeners();
-	}
+    this.#resize();
+    this.#registerEventListeners();
+  }
 
-	#getColors() {
-		const style = getComputedStyle(document.documentElement);
-		return {
-			cell: style.getPropertyValue('--cell-color'),
-			grid: style.getPropertyValue('--grid-color'),
-		};
-	}
+  #getColors() {
+    const style = getComputedStyle(document.documentElement);
+    return {
+      cell: style.getPropertyValue("--cell-color"),
+    };
+  }
 
-	#initGrid(): Cell[][] {
-		return Array.from({ length: GRID_SIZE }, () =>
-			Array.from({ length: GRID_SIZE }, () => new Cell()),
-		);
-	}
+  #initGrid(): Cell[][] {
+    return Array.from({ length: this.#rows }, () =>
+      Array.from({ length: this.#cols }, () => new Cell()),
+    );
+  }
 
-	#drawGridLines(gridColor: string): void {
-		this.#context.strokeStyle = gridColor;
-		this.#context.lineWidth = 1;
+  #countNeighbors(row: number, col: number): number {
+    let count = 0;
 
-		for (let i = 0; i <= GRID_SIZE; ++i) {
-			const x = this.#offsetX + i * this.#cellSize;
-			const y = this.#offsetY + i * this.#cellSize;
+    for (let deltaRow = -1; deltaRow <= 1; ++deltaRow) {
+      for (let deltaCol = -1; deltaCol <= 1; ++deltaCol) {
+        /** Skip self */
+        if (deltaRow === 0 && deltaCol === 0) {
+          continue;
+        }
 
-			this.#context.beginPath();
-			this.#context.moveTo(x, this.#offsetY);
-			this.#context.lineTo(x, this.#offsetY + GRID_SIZE * this.#cellSize);
-			this.#context.stroke();
+        const neighborRow = row + deltaRow;
+        const neighborCol = col + deltaCol;
 
-			this.#context.beginPath();
-			this.#context.moveTo(this.#offsetX, y);
-			this.#context.lineTo(this.#offsetX + GRID_SIZE * this.#cellSize, y);
-			this.#context.stroke();
-		}
-	}
+        const inBounds =
+          neighborRow >= 0 &&
+          neighborRow < this.#rows &&
+          neighborCol >= 0 &&
+          neighborCol < this.#cols;
 
-	#countNeighbors(row: number, col: number): number {
-		let count = 0;
+        if (inBounds && this.#grid[neighborRow][neighborCol].alive) {
+          count++;
+        }
+      }
+    }
 
-		for (let deltaRow = -1; deltaRow <= 1; ++deltaRow) {
-			for (let deltaCol = -1; deltaCol <= 1; ++deltaCol) {
-				/** Skip self */
-				if (deltaRow === 0 && deltaCol === 0) {
-					continue;
-				}
+    return count;
+  }
 
-				const neighborRow = row + deltaRow;
-				const neighborCol = col + deltaCol;
+  #generateNextFrame(): void {
+    const newStates: boolean[][] = [];
 
-				const inBounds =
-					neighborRow >= 0 &&
-					neighborRow < GRID_SIZE &&
-					neighborCol >= 0 &&
-					neighborCol < GRID_SIZE;
+    for (let row = 0; row < this.#rows; ++row) {
+      newStates[row] = [];
+      for (let col = 0; col < this.#cols; ++col) {
+        const neighbors = this.#countNeighbors(row, col);
+        const alive = this.#grid[row][col].alive;
 
-				if (inBounds && this.#grid[neighborRow][neighborCol].alive) {
-					count++;
-				}
-			}
-		}
+        if (alive) {
+          newStates[row][col] = neighbors === 2 || neighbors === 3;
+        } else {
+          newStates[row][col] = neighbors === 3;
+        }
+      }
+    }
 
-		return count;
-	}
+    for (let row = 0; row < this.#rows; ++row) {
+      for (let col = 0; col < this.#cols; ++col) {
+        this.#grid[row][col].alive = newStates[row][col];
+      }
+    }
+  }
 
-	#generateNextFrame(): void {
-		const newStates: boolean[][] = [];
+  #onCellClick(clientX: number, clientY: number): { row: number; col: number } | null {
+    const rect = this.#canvas.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
 
-		for (let row = 0; row < GRID_SIZE; ++row) {
-			newStates[row] = [];
-			for (let col = 0; col < GRID_SIZE; ++col) {
-				const neighbors = this.#countNeighbors(row, col);
-				const alive = this.#grid[row][col].alive;
+    const col = Math.floor(x / CELL_SIZE);
+    const row = Math.floor(y / CELL_SIZE);
 
-				if (alive) {
-					newStates[row][col] = neighbors === 2 || neighbors === 3;
-				} else {
-					newStates[row][col] = neighbors === 3;
-				}
-			}
-		}
+    if (row >= 0 && row < this.#rows && col >= 0 && col < this.#cols) {
+      return { row, col };
+    }
 
-		for (let row = 0; row < GRID_SIZE; ++row) {
-			for (let col = 0; col < GRID_SIZE; ++col) {
-				this.#grid[row][col].alive = newStates[row][col];
-			}
-		}
-	}
+    return null;
+  }
 
-	#onCellClick(clientX: number, clientY: number): { row: number; col: number } | null {
-		const rect = this.#canvas.getBoundingClientRect();
-		const x = clientX - rect.left - this.#offsetX;
-		const y = clientY - rect.top - this.#offsetY;
+  #resize(): void {
+    this.#canvas.width = window.innerWidth;
+    this.#canvas.height = window.innerHeight;
 
-		const col = Math.floor(x / this.#cellSize);
-		const row = Math.floor(y / this.#cellSize);
+    this.#cols = Math.max(MIN_COLS, Math.ceil(this.#canvas.width / CELL_SIZE));
+    this.#rows = Math.max(MIN_ROWS, Math.ceil(this.#canvas.height / CELL_SIZE));
+    this.#grid = this.#initGrid();
 
-		if (row >= 0 && row < GRID_SIZE && col >= 0 && col < GRID_SIZE) {
-			return { row, col };
-		}
+    this.#draw();
+  }
 
-		return null;
-	}
+  #draw(): void {
+    const colors = this.#getColors();
 
-	#resize(): void {
-		this.#canvas.width = window.innerWidth;
-		this.#canvas.height = window.innerHeight;
+    this.#context.clearRect(0, 0, this.#canvas.width, this.#canvas.height);
 
-		this.#cellSize = Math.ceil(Math.max(this.#canvas.width, this.#canvas.height) / GRID_SIZE);
-		this.#offsetX = 0;
-		this.#offsetY = 0;
+    for (let row = 0; row < this.#rows; ++row) {
+      for (let col = 0; col < this.#cols; ++col) {
+        const x = col * CELL_SIZE;
+        const y = row * CELL_SIZE;
 
-		this.#draw();
-	}
+        this.#grid[row][col].draw(this.#context, x, y, CELL_SIZE, colors.cell);
+      }
+    }
+  }
 
-	#draw(): void {
-		const colors = this.#getColors();
+  #animate(): void {
+    if (!this.#running) return;
 
-		this.#context.clearRect(0, 0, this.#canvas.width, this.#canvas.height);
+    this.#generateNextFrame();
+    this.#draw();
 
-		for (let row = 0; row < GRID_SIZE; ++row) {
-			for (let col = 0; col < GRID_SIZE; ++col) {
-				const x = this.#offsetX + col * this.#cellSize;
-				const y = this.#offsetY + row * this.#cellSize;
+    setTimeout(() => {
+      this.#animationId = requestAnimationFrame(() => this.#animate());
+    }, 100);
+  }
 
-				this.#grid[row][col].draw(this.#context, x, y, this.#cellSize, colors.cell);
-			}
-		}
+  #registerEventListeners(): void {
+    window.addEventListener("resize", () => this.#resize());
 
-		this.#drawGridLines(colors.grid);
-	}
+    this.#canvas.addEventListener("click", (e) => {
+      const cell = this.#onCellClick(e.clientX, e.clientY);
+      if (cell) {
+        this.#grid[cell.row][cell.col].onToggle();
+        this.#draw();
+      }
+    });
+  }
 
-	#animate(): void {
-		if (!this.#running) return;
+  start(): void {
+    if (this.#running) return;
+    this.#running = true;
+    this.#animate();
+  }
 
-		this.#generateNextFrame();
-		this.#draw();
+  stop(): void {
+    this.#running = false;
+    if (this.#animationId) {
+      cancelAnimationFrame(this.#animationId);
+      this.#animationId = null;
+    }
+  }
 
-		setTimeout(() => {
-			this.#animationId = requestAnimationFrame(() => this.#animate());
-		}, 300);
-	}
+  onToggle(): boolean {
+    if (this.#running) {
+      this.stop();
+    } else {
+      this.start();
+    }
+    return this.#running;
+  }
 
-	#registerEventListeners(): void {
-		window.addEventListener('resize', () => this.#resize());
+  step(): void {
+    this.#generateNextFrame();
+    this.#draw();
+  }
 
-		this.#canvas.addEventListener('click', (e) => {
-			const cell = this.#onCellClick(e.clientX, e.clientY);
-			if (cell) {
-				this.#grid[cell.row][cell.col].onToggle();
-				this.#draw();
-			}
-		});
-	}
+  reset(): void {
+    this.stop();
+    this.#grid = this.#initGrid();
+    this.#draw();
+  }
 
-	start(): void {
-		if (this.#running) return;
-		this.#running = true;
-		this.#animate();
-	}
+  randomize(): void {
+    for (let row = 0; row < this.#rows; ++row) {
+      for (let col = 0; col < this.#cols; ++col) {
+        this.#grid[row][col].alive = Math.random() > 0.5;
+      }
+    }
+    this.#draw();
+  }
 
-	stop(): void {
-		this.#running = false;
-		if (this.#animationId) {
-			cancelAnimationFrame(this.#animationId);
-			this.#animationId = null;
-		}
-	}
+  redraw(): void {
+    this.#draw();
+  }
 
-	onToggle(): boolean {
-		if (this.#running) {
-			this.stop();
-		} else {
-			this.start();
-		}
-		return this.#running;
-	}
-
-	step(): void {
-		this.#generateNextFrame();
-		this.#draw();
-	}
-
-	reset(): void {
-		this.stop();
-		this.#grid = this.#initGrid();
-		this.#draw();
-	}
-
-	randomize(): void {
-		for (let row = 0; row < GRID_SIZE; ++row) {
-			for (let col = 0; col < GRID_SIZE; ++col) {
-				this.#grid[row][col].alive = Math.random() > 0.5;
-			}
-		}
-		this.#draw();
-	}
-
-	redraw(): void {
-		this.#draw();
-	}
-
-	init(): void {
-		this.#draw();
-	}
+  init(): void {
+    this.#draw();
+  }
 }
