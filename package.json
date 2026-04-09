@@ -20,7 +20,7 @@
 		"prepare": "husky"
 	},
 	"devDependencies": {
-		"cspell": "^9.7.0",
+		"cspell": "^10.0.0",
 		"esbuild": "^0.28.0",
 		"husky": "^9.1.7",
 		"oxfmt": "^0.42.0",
