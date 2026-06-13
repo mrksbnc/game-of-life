@@ -21,7 +21,7 @@
 	},
 	"devDependencies": {
 		"cspell": "^9.7.0",
-		"esbuild": "^0.28.0",
+		"esbuild": "^0.28.1",
 		"husky": "^9.1.7",
 		"oxfmt": "^0.42.0",
 		"oxlint": "^1.56.0",
