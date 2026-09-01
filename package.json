@@ -20,12 +20,12 @@
 		"prepare": "husky"
 	},
 	"devDependencies": {
-		"cspell": "^9.7.0",
+		"cspell": "^10.2.0",
 		"esbuild": "^0.28.1",
 		"husky": "^9.1.7",
-		"oxfmt": "^0.42.0",
+		"oxfmt": "^0.65.0",
 		"oxlint": "^1.69.0",
-		"typescript": "^6.0.2"
+		"typescript": "^7.0.2"
 	},
-	"packageManager": "pnpm@10.32.1"
+	"packageManager": "pnpm@11.25.0+sha512.5cde925b4f075f725eb71fbae18a42ffe784524789f19b61c731cb8721ec28aaee160e01a8d5af4fedb2a42cdbf300efe23db356b0d4a17b4d63e11f8ab7c956"
 }
